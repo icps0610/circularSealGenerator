@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text Fill Seal Warp Generator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #f3f4f6;
+            --card-bg: #ffffff;
+            --border: #e5e7eb;
+            --text-main: #1f2937;
+        }
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .container {
+            background-color: var(--card-bg);
+            padding: 32px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 24px;
+            max-width: 400px;
+            width: 100%;
+        }
+        h1 {
+            margin: 0;
+            font-size: 1.25rem;
+            color: var(--text-main);
+        }
+        .control-group {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        label {
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+        textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 1.2rem;
+            font-family: 'Fira Code', monospace;
+            outline: none;
+            box-sizing: border-box;
+            resize: vertical;
+            min-height: 80px;
+            text-align: center;
+        }
+        canvas {
+            background-color: transparent;
+            width: 300px;
+            height: 300px;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+        }
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            width: 100%;
+        }
+        button {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .btn-primary {
+            background-color: #000000;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #333333;
+        }
+
+        /* ----- 加入列印專用樣式 ----- */
+        @media print {
+            body {
+                background-color: #ffffff;
+                align-items: flex-start; /* 讓印章靠頁面左上方 */
+                padding: 1cm; /* 留出 1 公分頁界 */
+            }
+            .container {
+                box-shadow: none;
+                padding: 0;
+                margin: 0;
+            }
+            /* 隱藏標題、輸入框與按鈕，只印圖形 */
+            h1, .control-group, .btn-group {
+                display: none !important;
+            }
+            /* 強制設定列印時的實際物理尺寸 */
+            canvas {
+                width: 4cm !important;
+                height: 4cm !important;
+                filter: none; /* 移除陰影避免列印雜訊 */
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    
+    <div class="control-group">
+        <textarea id="sealText">p3Vn7n
+qNHWVi
+6M9mre</textarea>
+    </div>
+
+    <canvas id="sealCanvas" width="1200" height="1200"></canvas>
+
+    <div class="btn-group">
+        <button class="btn-primary" onclick="window.print()">列印 (4公分)</button>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('sealCanvas');
+    const ctx = canvas.getContext('2d');
+    const input = document.getElementById('sealText');
+    
+    const SIZE = 1200;
+    const BORDER_WIDTH = 24; 
+
+    function createGridPattern(context) {
+        const pCanvas = document.createElement('canvas');
+        const pSize = 16;
+        pCanvas.width = pSize;
+        pCanvas.height = pSize;
+        const pctx = pCanvas.getContext('2d');
+        
+        pctx.fillStyle = '#ffffff';
+        pctx.fillRect(0, 0, pSize, pSize);
+        
+        pctx.strokeStyle = '#000000';
+        pctx.lineWidth = 2;
+        pctx.beginPath();
+        pctx.moveTo(pSize / 2, 0);
+        pctx.lineTo(pSize / 2, pSize);
+        pctx.moveTo(0, pSize / 2);
+        pctx.lineTo(pSize, pSize / 2);
+        pctx.stroke();
+
+        return context.createPattern(pCanvas, 'repeat');
+    }
+
+    function generateWarpedSeal() {
+        const text = input.value;
+        if (!text.trim()) {
+            ctx.clearRect(0, 0, SIZE, SIZE);
+            return;
+        }
+
+        const lines = text.split('\n');
+        const numLines = lines.length;
+
+        const offCanvas = document.createElement('canvas');
+        offCanvas.width = SIZE;
+        offCanvas.height = SIZE;
+        const octx = offCanvas.getContext('2d', { willReadFrequently: true });
+
+        const gridPattern = createGridPattern(octx);
+
+        octx.fillStyle = '#ffffff';
+        octx.fillRect(0, 0, SIZE, SIZE);
+
+        octx.textBaseline = 'middle';
+        octx.lineJoin = 'round';
+        
+        const rowHeight = SIZE / numLines;
+        const baseFontSize = 400;
+        
+        octx.font = `bold ${baseFontSize}px "Fira Code", monospace`;
+
+        for (let i = 0; i < numLines; i++) {
+            const lineText = lines[i];
+            if (!lineText) continue;
+
+            const metrics = octx.measureText(lineText);
+            const textWidth = metrics.width;
+            
+            const scaleX = SIZE / textWidth;
+            const scaleY = rowHeight / baseFontSize;
+            const relativeY = (i * rowHeight) + (rowHeight / 2);
+
+            octx.save();
+            octx.translate(SIZE / 2, relativeY);
+            octx.scale(scaleX * 0.9, scaleY * 0.9);
+            
+            octx.textAlign = 'left';
+            let currentX = -textWidth / 2;
+
+            for (let j = 0; j < lineText.length; j++) {
+                const char = lineText[j];
+                const charWidth = octx.measureText(char).width;
+                
+                if (/[a-z]/.test(char)) {
+                    octx.lineWidth = 16;
+                    octx.strokeStyle = '#000000';
+                    octx.fillStyle = gridPattern;
+                    octx.strokeText(char, currentX, 0);
+                    octx.fillText(char, currentX, 0);
+                } else {
+                    octx.fillStyle = '#000000';
+                    octx.fillText(char, currentX, 0);
+                }
+                currentX += charWidth;
+            }
+            octx.restore();
+        }
+
+        const srcImageData = octx.getImageData(0, 0, SIZE, SIZE);
+        const srcData = srcImageData.data;
+        
+        const destImageData = ctx.createImageData(SIZE, SIZE);
+        const destData = destImageData.data;
+
+        const R = SIZE / 2;
+
+        for (let y = 0; y < SIZE; y++) {
+            for (let x = 0; x < SIZE; x++) {
+                const dx = x - R;
+                const dy = y - R;
+
+                if (dx * dx + dy * dy <= R * R) {
+                    let sx = dx;
+                    let sy = dy;
+
+                    const divisorX = Math.sqrt(R * R - dy * dy);
+                    const divisorY = Math.sqrt(R * R - dx * dx);
+
+                    if (divisorX > 0) sx = (dx * R) / divisorX;
+                    if (divisorY > 0) sy = (dy * R) / divisorY;
+
+                    let srcX = Math.floor(sx + R);
+                    let srcY = Math.floor(sy + R);
+
+                    srcX = Math.max(0, Math.min(SIZE - 1, srcX));
+                    srcY = Math.max(0, Math.min(SIZE - 1, srcY));
+
+                    const srcIndex = (srcY * SIZE + srcX) * 4;
+                    const destIndex = (y * SIZE + x) * 4;
+
+                    destData[destIndex] = srcData[srcIndex];
+                    destData[destIndex + 1] = srcData[srcIndex + 1];
+                    destData[destIndex + 2] = srcData[srcIndex + 2];
+                    destData[destIndex + 3] = srcData[srcIndex + 3];
+                }
+            }
+        }
+
+        ctx.clearRect(0, 0, SIZE, SIZE);
+        ctx.putImageData(destImageData, 0, 0);
+
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = BORDER_WIDTH;
+        ctx.beginPath();
+        ctx.arc(R, R, R - (BORDER_WIDTH / 2), 0, 2 * Math.PI);
+        ctx.stroke();
+    }
+
+    input.addEventListener('input', generateWarpedSeal);
+    
+    document.fonts.ready.then(function() {
+        generateWarpedSeal();
+    });
+</script>
+
+</body>
+</html>
