@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Text Fill Seal Warp Generator</title>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@700&display=swap" rel="stylesheet">
     <style>
@@ -11,6 +11,7 @@
             --card-bg: #ffffff;
             --border: #e5e7eb;
             --text-main: #1f2937;
+            --print-size: 4cm;
         }
         body {
             font-family: system-ui, -apple-system, sans-serif;
@@ -21,7 +22,7 @@
             align-items: center;
             min-height: 100vh;
             margin: 0;
-            padding: 20px;
+            padding: 16px;
             box-sizing: border-box;
         }
         .container {
@@ -33,19 +34,21 @@
             flex-direction: column;
             align-items: center;
             gap: 24px;
-            max-width: 400px;
+            max-width: 450px;
             width: 100%;
-        }
-        h1 {
-            margin: 0;
-            font-size: 1.25rem;
-            color: var(--text-main);
+            box-sizing: border-box;
         }
         .control-group {
             width: 100%;
             display: flex;
             flex-direction: column;
+            gap: 12px;
+        }
+        .settings-row {
+            display: flex;
             gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
         }
         label {
             font-weight: 500;
@@ -64,11 +67,23 @@
             min-height: 80px;
             text-align: center;
         }
+        input[type="number"] {
+            width: 70px;
+            padding: 6px 8px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 1rem;
+            outline: none;
+        }
         canvas {
             background-color: transparent;
-            width: 300px;
-            height: 300px;
+            /* 改為響應式寬高設定 */
+            width: 100%;
+            max-width: 300px;
+            height: auto;
+            aspect-ratio: 1 / 1;
             filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+            transition: background-color 0.3s;
         }
         .btn-group {
             display: flex;
@@ -77,10 +92,10 @@
         }
         button {
             flex: 1;
-            padding: 10px;
+            padding: 8px 12px;
             border: none;
             border-radius: 8px;
-            font-size: 1rem;
+            font-size: 0.9rem;
             font-weight: 600;
             cursor: pointer;
             transition: background-color 0.2s;
@@ -88,32 +103,52 @@
         .btn-primary {
             background-color: #000000;
             color: white;
+            font-size: 1rem;
+            padding: 10px;
         }
         .btn-primary:hover {
             background-color: #333333;
         }
+        .btn-secondary {
+            background-color: var(--border);
+            color: var(--text-main);
+            flex: 1 1 auto; /* 讓按鈕在小螢幕自動延展填滿 */
+            text-align: center;
+        }
+        .btn-secondary:hover {
+            background-color: #d1d5db;
+        }
 
-        /* ----- 加入列印專用樣式 ----- */
+        /* 手機版額外間距調整 */
+        @media (max-width: 480px) {
+            .container {
+                padding: 20px;
+                gap: 16px;
+            }
+            .settings-row {
+                justify-content: stretch;
+            }
+        }
+
         @media print {
             body {
                 background-color: #ffffff;
-                align-items: flex-start; /* 讓印章靠頁面左上方 */
-                padding: 1cm; /* 留出 1 公分頁界 */
+                align-items: flex-start;
+                padding: 1cm;
             }
             .container {
                 box-shadow: none;
                 padding: 0;
                 margin: 0;
             }
-            /* 隱藏標題、輸入框與按鈕，只印圖形 */
-            h1, .control-group, .btn-group {
+            .control-group, .btn-group {
                 display: none !important;
             }
-            /* 強制設定列印時的實際物理尺寸 */
             canvas {
-                width: 4cm !important;
-                height: 4cm !important;
-                filter: none; /* 移除陰影避免列印雜訊 */
+                width: var(--print-size) !important;
+                height: var(--print-size) !important;
+                max-width: none;
+                filter: none;
             }
         }
     </style>
@@ -121,17 +156,26 @@
 <body>
 
 <div class="container">
-    
     <div class="control-group">
         <textarea id="sealText">p3Vn7n
 qNHWVi
 6M9mre</textarea>
+
+        <div class="settings-row">
+            <button class="btn-secondary" id="btnToggleTheme">白底黑字</button>
+            <button class="btn-secondary" id="btnToggleGrid">小寫: 網格</button>
+            <button class="btn-secondary" id="btnToggleGridStyle">樣式: 水平</button>
+        </div>
+        <div class="settings-row" style="justify-content: space-between;">
+            <label for="inputDiameter">列印直徑 (公分):</label>
+            <input type="number" id="inputDiameter" value="4" min="1" max="20" step="0.5">
+        </div>
     </div>
 
     <canvas id="sealCanvas" width="1200" height="1200"></canvas>
 
     <div class="btn-group">
-        <button class="btn-primary" onclick="window.print()">列印 (4公分)</button>
+        <button class="btn-primary" id="btnPrint" onclick="window.print()">列印 (4公分)</button>
     </div>
 </div>
 
@@ -139,28 +183,86 @@ qNHWVi
     const canvas = document.getElementById('sealCanvas');
     const ctx = canvas.getContext('2d');
     const input = document.getElementById('sealText');
+    const inputDiameter = document.getElementById('inputDiameter');
+    const btnToggleTheme = document.getElementById('btnToggleTheme');
+    const btnToggleGrid = document.getElementById('btnToggleGrid');
+    const btnToggleGridStyle = document.getElementById('btnToggleGridStyle');
+    const btnPrint = document.getElementById('btnPrint');
     
     const SIZE = 1200;
     const BORDER_WIDTH = 24; 
 
-    function createGridPattern(context) {
+    // 狀態變數
+    let isDarkTheme = true;
+    let useGridForLowercase = false;
+    let gridStyleIndex = 0;
+    const gridStyles = ['水平', '垂直', '點狀', '十字', '斜線'];
+
+    // 事件監聽
+    btnToggleTheme.addEventListener('click', () => {
+        isDarkTheme = !isDarkTheme;
+        btnToggleTheme.innerText = isDarkTheme ? '黑底白字' : '白底黑字';
+        generateWarpedSeal();
+    });
+
+    btnToggleGrid.addEventListener('click', () => {
+        useGridForLowercase = !useGridForLowercase;
+        btnToggleGrid.innerText = useGridForLowercase ? '小寫: 網格' : '小寫: 實心';
+        generateWarpedSeal();
+    });
+
+    btnToggleGridStyle.addEventListener('click', () => {
+        gridStyleIndex = (gridStyleIndex + 1) % gridStyles.length;
+        btnToggleGridStyle.innerText = `樣式: ${gridStyles[gridStyleIndex]}`;
+        generateWarpedSeal();
+    });
+
+    inputDiameter.addEventListener('input', (e) => {
+        const val = e.target.value || 4;
+        document.documentElement.style.setProperty('--print-size', `${val}cm`);
+        btnPrint.innerText = `列印 (${val}公分)`;
+    });
+
+    function createGridPattern(context, bgColor, fgColor, styleIdx) {
         const pCanvas = document.createElement('canvas');
         const pSize = 16;
         pCanvas.width = pSize;
         pCanvas.height = pSize;
         const pctx = pCanvas.getContext('2d');
         
-        pctx.fillStyle = '#ffffff';
+        pctx.fillStyle = bgColor;
         pctx.fillRect(0, 0, pSize, pSize);
         
-        pctx.strokeStyle = '#000000';
+        pctx.strokeStyle = fgColor;
+        pctx.fillStyle = fgColor;
         pctx.lineWidth = 2;
         pctx.beginPath();
-        pctx.moveTo(pSize / 2, 0);
-        pctx.lineTo(pSize / 2, pSize);
-        pctx.moveTo(0, pSize / 2);
-        pctx.lineTo(pSize, pSize / 2);
-        pctx.stroke();
+
+        switch (styleIdx) {
+
+            case 0: // 水平
+                pctx.moveTo(0, pSize / 2); pctx.lineTo(pSize, pSize / 2);
+                pctx.stroke();
+                break;
+            case 1: // 垂直
+                pctx.moveTo(pSize / 2, 0); pctx.lineTo(pSize / 2, pSize);
+                pctx.stroke();
+                break;
+            case 2: // 點狀
+                pctx.arc(pSize / 2, pSize / 2, 3, 0, 2 * Math.PI);
+                pctx.fill();
+                break;
+            case 3: // 十字
+                pctx.moveTo(pSize / 2, 0); pctx.lineTo(pSize / 2, pSize);
+                pctx.moveTo(0, pSize / 2); pctx.lineTo(pSize, pSize / 2);
+                pctx.stroke();
+                break;
+            case 4: // 斜線
+                pctx.moveTo(0, 0); pctx.lineTo(pSize, pSize);
+                pctx.moveTo(pSize, 0); pctx.lineTo(0, pSize);
+                pctx.stroke();
+                break;
+        }
 
         return context.createPattern(pCanvas, 'repeat');
     }
@@ -172,6 +274,9 @@ qNHWVi
             return;
         }
 
+        const bgColor = isDarkTheme ? '#000000' : '#ffffff';
+        const fgColor = isDarkTheme ? '#ffffff' : '#000000';
+
         const lines = text.split('\n');
         const numLines = lines.length;
 
@@ -180,9 +285,9 @@ qNHWVi
         offCanvas.height = SIZE;
         const octx = offCanvas.getContext('2d', { willReadFrequently: true });
 
-        const gridPattern = createGridPattern(octx);
+        const gridPattern = createGridPattern(octx, bgColor, fgColor, gridStyleIndex);
 
-        octx.fillStyle = '#ffffff';
+        octx.fillStyle = bgColor;
         octx.fillRect(0, 0, SIZE, SIZE);
 
         octx.textBaseline = 'middle';
@@ -215,14 +320,14 @@ qNHWVi
                 const char = lineText[j];
                 const charWidth = octx.measureText(char).width;
                 
-                if (/[a-z]/.test(char)) {
+                if (/[a-z]/.test(char) && useGridForLowercase) {
                     octx.lineWidth = 16;
-                    octx.strokeStyle = '#000000';
+                    octx.strokeStyle = fgColor;
                     octx.fillStyle = gridPattern;
                     octx.strokeText(char, currentX, 0);
                     octx.fillText(char, currentX, 0);
                 } else {
-                    octx.fillStyle = '#000000';
+                    octx.fillStyle = fgColor;
                     octx.fillText(char, currentX, 0);
                 }
                 currentX += charWidth;
@@ -273,7 +378,7 @@ qNHWVi
         ctx.clearRect(0, 0, SIZE, SIZE);
         ctx.putImageData(destImageData, 0, 0);
 
-        ctx.strokeStyle = '#000000';
+        ctx.strokeStyle = '#000000'; // 強制將外框設為黑色
         ctx.lineWidth = BORDER_WIDTH;
         ctx.beginPath();
         ctx.arc(R, R, R - (BORDER_WIDTH / 2), 0, 2 * Math.PI);
