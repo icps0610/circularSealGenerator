@@ -1,181 +1,279 @@
+
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Text Fill Seal Warp Generator</title>
+    <title>變形印章產生器</title>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@700&display=swap" rel="stylesheet">
     <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans TC", sans-serif;
+        }
+
         :root {
-            --bg-color: #f3f4f6;
-            --card-bg: #ffffff;
-            --border: #e5e7eb;
-            --text-main: #1f2937;
             --print-size: 4cm;
         }
+
         body {
-            font-family: system-ui, -apple-system, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-main);
+            background-color: #f3f4f6;
+            color: #1f2937;
+        }
+
+        /* ===== 外層包裹 ===== */
+        .it-wrapper {
+            max-width: 860px;
+            margin: 24px auto 48px;
+            padding: 0 16px;
+        }
+
+        /* ===== 標題 ===== */
+        .it-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #e5e7eb;
             display: flex;
-            justify-content: center;
             align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            padding: 16px;
-            box-sizing: border-box;
-        }
-        .container {
-            background-color: var(--card-bg);
-            padding: 32px;
-            border-radius: 16px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 24px;
-            max-width: 450px;
-            width: 100%;
-            box-sizing: border-box;
-        }
-        .control-group {
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-        .settings-row {
-            display: flex;
             gap: 8px;
+        }
+
+        /* ===== 主面板 ===== */
+        .it-panel {
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+            padding: 24px 20px 32px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        /* ===== 控制區 ===== */
+        .it-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* ===== 預覽區 ===== */
+        .it-preview {
+            display: flex;
+            flex-direction: column;
             align-items: center;
+            gap: 16px;
+            padding-top: 8px;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        /* ===== 行按鈕群 ===== */
+        .it-action-row {
+            display: flex;
+            gap: 10px;
             flex-wrap: wrap;
         }
-        label {
-            font-weight: 500;
-            font-size: 0.9rem;
+
+        /* ===== 設定列 (標籤 + 輸入) ===== */
+        .it-setting-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: #f9fafb;
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
         }
+
+        .it-setting-row label {
+            font-weight: 600;
+            font-size: 14px;
+            color: #374151;
+        }
+
+        /* ===== textarea ===== */
         textarea {
             width: 100%;
-            padding: 10px 12px;
-            border: 1px solid var(--border);
+            padding: 12px 16px;
+            border: 1px solid #d1d5db;
             border-radius: 8px;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             font-family: 'Fira Code', monospace;
+            background-color: #f9fafb;
+            color: #1f2937;
             outline: none;
-            box-sizing: border-box;
             resize: vertical;
-            min-height: 80px;
+            min-height: 120px;
             text-align: center;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
         }
+
+        textarea:focus {
+            background-color: #ffffff;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+
+        /* ===== number input ===== */
         input[type="number"] {
-            width: 70px;
-            padding: 6px 8px;
-            border: 1px solid var(--border);
+            width: 80px;
+            padding: 6px 10px;
+            border: 1px solid #d1d5db;
             border-radius: 6px;
-            font-size: 1rem;
+            font-size: 0.875rem;
+            color: #1f2937;
             outline: none;
+            background-color: #ffffff;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
         }
+
+        input[type="number"]:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+
+        /* ===== Canvas 預覽框 ===== */
         canvas {
-            background-color: transparent;
-            /* 改為響應式寬高設定 */
             width: 100%;
-            max-width: 300px;
+            max-width: 360px;
             height: auto;
             aspect-ratio: 1 / 1;
-            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+            background-color: #f9fafb;
+            border: 2px dashed #d1d5db;
+            border-radius: 12px;
+            padding: 12px;
             transition: background-color 0.3s;
         }
-        .btn-group {
-            display: flex;
-            gap: 12px;
-            width: 100%;
-        }
+
+        /* ===== 按鈕基底 ===== */
         button {
-            flex: 1;
-            padding: 8px 12px;
+            padding: 9px 18px;
             border: none;
             border-radius: 8px;
-            font-size: 0.9rem;
+            font-size: 14px;
             font-weight: 600;
             cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        .btn-primary {
-            background-color: #000000;
-            color: white;
-            font-size: 1rem;
-            padding: 10px;
-        }
-        .btn-primary:hover {
-            background-color: #333333;
-        }
-        .btn-secondary {
-            background-color: var(--border);
-            color: var(--text-main);
-            flex: 1 1 auto; /* 讓按鈕在小螢幕自動延展填滿 */
-            text-align: center;
-        }
-        .btn-secondary:hover {
-            background-color: #d1d5db;
+            transition: all 0.15s ease-in-out;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
         }
 
-        /* 手機版額外間距調整 */
-        @media (max-width: 480px) {
-            .container {
-                padding: 20px;
-                gap: 16px;
-            }
-            .settings-row {
-                justify-content: stretch;
-            }
+        button:focus { outline: none; }
+
+        /* 主要藍色按鈕 */
+        .it-btn-primary {
+            background-color: #2563eb;
+            color: #ffffff;
+            flex: 1;
+            padding: 12px 16px;
+            font-size: 15px;
         }
 
+        .it-btn-primary:hover {
+            background-color: #1d4ed8;
+            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.25);
+        }
+
+        .it-btn-primary:active {
+            background-color: #1e40af;
+            transform: translateY(1px);
+        }
+
+        /* 次要灰色按鈕 */
+        .it-btn-secondary {
+            background-color: #f9fafb;
+            color: #4b5563;
+            border: 1px solid #d1d5db;
+            flex: 1 1 auto;
+        }
+
+        .it-btn-secondary:hover {
+            background-color: #eff6ff;
+            border-color: #60a5fa;
+            color: #1d4ed8;
+        }
+
+        .it-btn-secondary:active {
+            background-color: #dbeafe;
+            border-color: #3b82f6;
+            transform: translateY(1px);
+        }
+
+        /* ===== 按鈕列 (預覽區底部) ===== */
+        .it-btn-group {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+        }
+
+        /* ===== RWD ===== */
+        @media (max-width: 720px) {
+            .it-wrapper { padding: 0 10px; margin: 16px auto 32px; }
+            .it-title { font-size: 18px; }
+            .it-panel { padding: 18px 14px 24px; }
+            textarea { min-height: 90px; }
+        }
+
+        /* ===== 列印 ===== */
         @media print {
-            body {
-                background-color: #ffffff;
-                align-items: flex-start;
-                padding: 1cm;
-            }
-            .container {
+            body { background-color: #ffffff; }
+            .it-wrapper { margin: 0; padding: 1cm; }
+            .it-title { display: none !important; }
+            .it-panel {
+                display: block;
                 box-shadow: none;
+                border: none;
                 padding: 0;
-                margin: 0;
             }
-            .control-group, .btn-group {
-                display: none !important;
-            }
+            .it-controls, .it-btn-group { display: none !important; }
             canvas {
                 width: var(--print-size) !important;
                 height: var(--print-size) !important;
                 max-width: none;
-                filter: none;
+                border: none;
+                padding: 0;
+                background-color: transparent;
             }
         }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="control-group">
-        <textarea id="sealText">p3Vn7n
+<div class="it-wrapper">
+    <div class="it-title">&#128142; 變形印章產生器</div>
+
+    <div class="it-panel">
+
+        <!-- 左欄：控制區 -->
+        <div class="it-controls">
+            <textarea id="sealText">p3Vn7n
 qNHWVi
 6M9mre</textarea>
 
-        <div class="settings-row">
-            <button class="btn-secondary" id="btnToggleTheme">白底黑字</button>
-            <button class="btn-secondary" id="btnToggleGrid">小寫: 網格</button>
-            <button class="btn-secondary" id="btnToggleGridStyle">樣式: 水平</button>
-        </div>
-        <div class="settings-row" style="justify-content: space-between;">
-            <label for="inputDiameter">列印直徑 (公分):</label>
-            <input type="number" id="inputDiameter" value="4" min="1" max="20" step="0.5">
-        </div>
-    </div>
+            <div class="it-action-row">
+                <button class="it-btn-secondary" id="btnToggleTheme">白底黑字</button>
+                <button class="it-btn-secondary" id="btnToggleGrid">小寫: 網格</button>
+                <button class="it-btn-secondary" id="btnToggleGridStyle">樣式: 水平</button>
+            </div>
 
-    <canvas id="sealCanvas" width="1200" height="1200"></canvas>
+            <div class="it-setting-row">
+                <label for="inputDiameter">列印直徑（公分）</label>
+                <input type="number" id="inputDiameter" value="4" min="1" max="20" step="0.5">
+            </div>
+        </div>
 
-    <div class="btn-group">
-        <button class="btn-primary" id="btnPrint" onclick="window.print()">列印 (4公分)</button>
+        <!-- 右欄：預覽區 -->
+        <div class="it-preview">
+            <canvas id="sealCanvas" width="1200" height="1200"></canvas>
+            <div class="it-btn-group">
+                <button class="it-btn-primary" id="btnPrint" onclick="window.print()">列印 (4公分)</button>
+            </div>
+        </div>
+
     </div>
 </div>
 
